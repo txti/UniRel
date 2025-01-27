@@ -1,31 +1,32 @@
 import collections
+import glob
 import logging
 import os
 import sys
-import csv
-import glob
 from dataclasses import dataclass, field
 from typing import Optional
 
-import transformers
-import numpy as np
 import torch
-# from torch.utils.tensorboard import SummaryWriter
-
-from transformers import (BertTokenizerFast, BertModel, Trainer,
-                          TrainingArguments, BertConfig, BertLMHeadModel)
-
+import transformers
+from transformers import (
+    BertConfig,
+    BertTokenizerFast,
+    Trainer,
+    TrainingArguments,
+    set_seed,
+)
 from transformers.hf_argparser import HfArgumentParser
-from transformers import EvalPrediction, set_seed
 
-from dataprocess.data_processor import UniRelDataProcessor
-from dataprocess.dataset import UniRelDataset, UniRelSpanDataset
-
-from model.model_transformers import  UniRelModel
 from dataprocess.data_extractor import *
 from dataprocess.data_metric import *
+from dataprocess.data_processor import UniRelDataProcessor
+from dataprocess.dataset import UniRelDataset, UniRelSpanDataset
+from model.model_transformers import UniRelModel
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# For intel gpu
+# torch.set_default_device("xpu")
 
 DataProcessorDict = {
     "nyt_all_sa": UniRelDataProcessor,
@@ -34,7 +35,7 @@ DataProcessorDict = {
 
 DatasetDict = {
     "nyt_all_sa": UniRelDataset,
-    "unirel_span": UniRelSpanDataset 
+    "unirel_span": UniRelSpanDataset
 }
 
 ModelDict = {
@@ -142,8 +143,7 @@ class RunArguments:
         default=None)
     checkpoint_dir : str = field(
         metadata={"help": "Test with specififc trained checkpoint"},
-        default=None
-    )
+        default=None)
     is_additional_att: bool = field(
         metadata={"help": "Use additonal attention layer upon BERT"},
         default=False)
@@ -217,7 +217,7 @@ if __name__ == '__main__':
         token_len=run_args.max_seq_length, data_nums=run_args.train_data_nums)
     dev_samples = data_processor.get_dev_sample(
         token_len=150, data_nums=run_args.test_data_nums)
-    
+
     # For special experiment wants to test on specific testset
     if run_args.test_data_path is not None:
         test_samples = data_processor.get_specific_test_sample(
@@ -278,7 +278,6 @@ if __name__ == '__main__':
     model = ModelType(config=config, model_dir=run_args.model_dir)
     model.resize_token_embeddings(len(tokenizer))
 
-   
     if training_args.do_train:
         trainer = Trainer(
             model=model,
@@ -309,7 +308,7 @@ if __name__ == '__main__':
                         f"{training_args.output_dir}/checkpoint-*/{transformers.file_utils.WEIGHTS_NAME}",
                         recursive=True)))
         else:
-            checkpoints = [run_args.checkpoint_dir] 
+            checkpoints = [run_args.checkpoint_dir]
         logger.info(f"Test the following checkpoints: {checkpoints}")
         best_f1 = 0
         best_checkpoint = None
@@ -350,5 +349,5 @@ if __name__ == '__main__':
         test_prediction = trainer.predict(test_dataset)
         output_dir = os.path.join(training_args.output_dir, best_checkpoint.split("/")[-1])
         ExtractType(tokenizer, test_dataset, test_prediction, output_dir)
-            
+
     print("Here I am")

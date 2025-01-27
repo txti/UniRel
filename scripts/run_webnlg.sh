@@ -1,5 +1,5 @@
-export CUDA_VISIBLE_DEVICES=4
-python3 run.py \
+# export CUDA_VISIBLE_DEVICES=4
+python run.py \
     --task_name UniRel \
     --max_seq_length 100 \
     --per_device_train_batch_size 6 \
@@ -15,7 +15,7 @@ python3 run.py \
     --model_dir ./bert-base-cased/ \
     --output_dir ./output/webnlg \
     --overwrite_output_dir \
-    --dataset_dir YourDataDir \
+    --dataset_dir ./data \
     --dataloader_pin_memory \
     --dataloader_num_workers 4 \
     --lr_scheduler_type cosine \

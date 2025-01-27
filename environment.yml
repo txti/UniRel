@@ -1,0 +1,15 @@
+name: unirel
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10.10
+  - pip
+  - ipykernel
+  - ipython
+  - ipywidgets
+  - jupyterlab
+  - pandas
+  - widgetsnbextension
+  - pip:
+    - wandb
+    - -r requirements.txt

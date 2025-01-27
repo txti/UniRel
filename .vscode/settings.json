@@ -1,0 +1,12 @@
+{
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "diffEditor.ignoreTrimWhitespace": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        },
+    },
+    "isort.args":["--profile", "black"],
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.analysis.autoImportCompletions": true
+}

@@ -1,0 +1,8 @@
+__pycache__
+*.bak
+*.gz
+*.zip
+bert-base-cased
+data
+output
+wandb
