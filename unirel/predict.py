@@ -4,10 +4,13 @@ import numpy as np
 import torch
 from transformers import BertTokenizerFast
 
-import dataprocess.rel2text
-from dataprocess.data_extractor import *
-from dataprocess.data_metric import *
-from model.model_transformers import UniRelModel
+from .model.model_transformers import UniRelModel
+from .process import rel2text
+from .process.data_extractor import *
+from .process.data_metric import *
+
+# import .rel2text
+
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -25,11 +28,11 @@ class UniRel:
     def _get_pred_str(self, dataset_name):
         self.pred2text = None
         if dataset_name == "nyt":
-            self.pred2text=dataprocess.rel2text.nyt_rel2text
+            self.pred2text=rel2text.nyt_rel2text
         elif dataset_name == "nyt_star":
-            self.pred2text=dataprocess.rel2text.nyt_rel2text
+            self.pred2text=rel2text.nyt_rel2text
         elif dataset_name == "webnlg":
-            self.pred2text=dataprocess.rel2text.webnlg_rel2text
+            self.pred2text=rel2text.webnlg_rel2text
             cnt = 1
             exist_value=[]
             # Some hard to convert relation directly use [unused]
@@ -47,7 +50,7 @@ class UniRel:
                 else:
                     exist_value.append(v)
         elif dataset_name == "webnlg_star":
-            self.pred2text = dataprocess.rel2text.webnlg_rel2text
+            self.pred2text = rel2text.webnlg_rel2text
             cnt = 1
             exist_value=[]
             for k in self.pred2text:

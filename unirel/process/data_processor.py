@@ -7,7 +7,7 @@ import unicodedata
 import numpy as np
 from tqdm import tqdm
 
-import dataprocess.rel2text
+from ..process import rel2text
 
 
 def save_dict(dict, name):
@@ -61,14 +61,14 @@ class UniRelDataProcessor(object):
 
         self._get_labels()
         if dataset_name == "nyt":
-            self.pred2text = dataprocess.rel2text.nyt_rel2text
+            self.pred2text = rel2text.nyt_rel2text
             # self.pred2text = {key: "[unused"+str(i+1)+"]" for i, key in enumerate(self.label2id.keys())}
         elif dataset_name == "nyt_star":
-            self.pred2text = dataprocess.rel2text.nyt_rel2text
+            self.pred2text = rel2text.nyt_rel2text
             # self.pred2text = {key: "[unused"+str(i+1)+"]" for i, key in enumerate(self.label2id.keys())}
         elif dataset_name == "webnlg":
             # self.pred2text = {key: "[unused"+str(i+1)+"]" for i, key in enumerate(self.label2id.keys())}
-            self.pred2text = dataprocess.rel2text.webnlg_rel2text
+            self.pred2text = rel2text.webnlg_rel2text
             cnt = 1
             exist_value = []
             # Some hard to convert relation directly use [unused]
@@ -89,7 +89,7 @@ class UniRelDataProcessor(object):
             self.pred2text = {}
             for pred in self.label2id.keys():
                 try:
-                    self.pred2text[pred] = dataprocess.rel2text.webnlg_rel2text[pred]
+                    self.pred2text[pred] = rel2text.webnlg_rel2text[pred]
                 except KeyError:
                     print(pred)
             cnt = 1
@@ -135,7 +135,6 @@ class UniRelDataProcessor(object):
         samples = self._pre_process(
             self.test_path, token_len=token_len, is_predict=True, data_nums=data_nums
         )
-        # json.dump(self.complex_data, self.wp, ensure_ascii=False)
         return samples
 
     def get_specific_test_sample(self, data_path, token_len=150, data_nums=-1):
@@ -145,9 +144,6 @@ class UniRelDataProcessor(object):
 
     def _get_labels(self):
         label_num_dict = {}
-        # if os.path.exists(self.label_map_cache_path):
-        #     label_map = load_dict(self.label_map_cache_path)
-        # else:
         label_set = set()
         for path in [self.train_path, self.dev_path, self.test_path]:
             fp = open(path)
@@ -162,8 +158,6 @@ class UniRelDataProcessor(object):
         label_set = sorted(label_set)
         labels = list(label_set)
         label_map = {idx: label for idx, label in enumerate(labels)}
-        # write_dict(self.label_map_cache_path, label_map)
-        # fp.close()
         self.id2label = label_map
         self.label2id = {val: key for key, val in self.id2label.items()}
 

@@ -57,25 +57,24 @@ class UniRelModel(BertPreTrainedModel):
 
     def forward(
         self,
-        input_ids=None,
-        attention_mask=None,
-        token_type_ids=None,
-        token_len_batch=None,
-        labels=None,
-        head_label=None,
-        tail_label=None,
-        span_label=None,
-        position_ids=None,
-        head_mask=None,
-        inputs_embeds=None,
-        output_hidden_states=None,
-        return_dict=None,
+        input_ids: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        token_type_ids: Optional[torch.Tensor] = None,
+        token_len_batch: Optional[torch.Tensor] = None,
+        head_label: Optional[torch.FloatTensor] = None,
+        tail_label: Optional[torch.FloatTensor] = None,
+        span_label: Optional[torch.FloatTensor] = None,
+        position_ids: Optional[torch.Tensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        inputs_embeds: Optional[torch.Tensor] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None
     ):
         tail_logits = None
         # For span extraction
         head_logits = None
         span_logits = None
-        #
+
         if not self.config.is_separate_ablation:
             # Encoding the sentence and relations simultaneously, and using the inside Attention score
             outputs = self.bert(
@@ -92,13 +91,18 @@ class UniRelModel(BertPreTrainedModel):
             )
             attentions_scores = outputs.attentions_scores[-1]
             if self.config.test_data_type == "unirel_span":
-                head_logits = nn.Sigmoid()(attentions_scores[:, :4, :, :].mean(1))
-                tail_logits = nn.Sigmoid()(attentions_scores[:, 4:8, :, :].mean(1))
-                span_logits = nn.Sigmoid()(attentions_scores[:, 8:, :, :].mean(1))
+                head_logits = nn.Sigmoid()(
+                    attentions_scores[:, :4, :, :].mean(1))
+                tail_logits = nn.Sigmoid()(
+                    attentions_scores[:, 4:8, :, :].mean(1))
+                span_logits = nn.Sigmoid()(
+                    attentions_scores[:, 8:, :, :].mean(1))
             else:
-                tail_logits = nn.Sigmoid()(attentions_scores[:, :, :, :].mean(1))
+                tail_logits = nn.Sigmoid()(
+                    attentions_scores[:, :, :, :].mean(1))
         else:
-            # Encoding the sentence and relations in a separate manner, and add another attention layer
+            # Encoding the sentence and relations in a separate manner,
+            # and add another attention layer
             TOKEN_LEN = token_len_batch[0]
             text_outputs = self.bert(
                 input_ids=input_ids[:, :TOKEN_LEN],
@@ -126,7 +130,8 @@ class UniRelModel(BertPreTrainedModel):
             )
 
             last_hidden_state = torch.cat(
-                (text_outputs.last_hidden_state, pred_outputs.last_hidden_state), -2
+                (text_outputs.last_hidden_state,
+                 pred_outputs.last_hidden_state), -2
             )
             key_layer = self.key_linear(last_hidden_state)
             value_layer = self.value_linear(last_hidden_state)

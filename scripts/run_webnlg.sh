@@ -1,5 +1,8 @@
-# export CUDA_VISIBLE_DEVICES=4
-python run.py \
+export PYTHONPATH=.
+export CUDA_VISIBLE_DEVICES="0"
+export WANDB_MODE="offline"
+
+python ./unirel/train.py \
     --task_name UniRel \
     --max_seq_length 100 \
     --per_device_train_batch_size 6 \

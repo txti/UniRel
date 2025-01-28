@@ -1,4 +1,4 @@
-# The Relation to Text dict 
+# The Relation to Text dict
 nyt_rel2text = {
                 '/business/company/advisors': 'advisors',
                 '/business/company/founders': 'founders',
@@ -279,7 +279,7 @@ webnlg_rel2text = {
     "was selected by NASA": "NASA",
     "year": "year",
     "yearOfConstruction": "construction",
-    "youthclub": "youth" 
+    "youthclub": "youth"
 }
 
 webnlg_rel2clearrep = {
@@ -505,5 +505,5 @@ webnlg_rel2clearrep = {
     "was selected by NASA": "NASA",
     "year": "year",
     "yearOfConstruction": "construction year",
-    "youthclub": "youth club" 
+    "youthclub": "youth club"
 }
