@@ -1,16 +1,3 @@
-# Copyright 2020 The HuggingFace Team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from dataclasses import dataclass
 from typing import Optional
 
@@ -19,7 +6,7 @@ from torch import nn
 from transformers import BertPreTrainedModel, BertTokenizerFast
 from transformers.file_utils import ModelOutput
 
-from .modify_bert import BertModel
+from .modify_bert import UniRelBertModel
 
 
 @dataclass
@@ -39,9 +26,9 @@ class UniRelModel(BertPreTrainedModel):
         super(UniRelModel, self).__init__(config=config)
         self.config = config
         if model_dir is not None:
-            self.bert = BertModel.from_pretrained(model_dir, config=config)
+            self.bert = UniRelBertModel.from_pretrained(model_dir, config=config)
         else:
-            self.bert = BertModel(config)
+            self.bert = UniRelBertModel(config)
 
         # Easy debug
         self.tokenizer = BertTokenizerFast.from_pretrained(

@@ -256,16 +256,11 @@ def unirel_span_extractor(
     token_len = dataset.max_length - 2
 
     state_dict = {"p": 0, "c": 0, "g": 0}
-    e2e_state_dict = {"p": 0, "c": 0, "g": 0}
-    e2e_tail_state_dict = {"p": 0, "c": 0, "g": 0}
-    e2e_plain_state_dict = {"p": 0, "c": 0, "g": 0}
-    h2r_state_dict = {"p": 0, "c": 0, "g": 0}
-    t2r_state_dict = {"p": 0, "c": 0, "g": 0}
     idx2pred = dataset.data_processor.idx2pred
     extract_data = []
     path = os.path.join(path, dataset.mode + "_predict_sard.json")
     head_preds, tail_preds, span_preds = predictions.predictions
-    head_labels, tail_labels, span_labels = predictions.label_ids
+
     # NOTE: This is only for test!
     # head_preds, tail_preds, span_preds = predictions.label_ids
     curr_data_idx = 0
@@ -290,7 +285,7 @@ def unirel_span_extractor(
         s_t2r, _ = get_e2r(head_pred.T, token_len)
         e_h2r, e2e = get_e2r(tail_pred, token_len)
         e_t2r, _ = get_e2r(tail_pred.T, token_len)
-        start2span, end2span = get_span_att(span_pred, token_len)
+        _, end2span = get_span_att(span_pred, token_len)
         for l, r in e2e:
             if l not in e_h2r or r not in e_t2r:
                 continue
@@ -310,8 +305,6 @@ def unirel_span_extractor(
                         & set(e_h2r[l])
                         & set(e_t2r[r])
                     )
-                    # l_span_new = (l_span[0]+1, l_span[1])
-                    # r_span_new = (r_span[0]+1, r_span[1])
                     l_span_new = (l_span[0], l_span[1])
                     r_span_new = (r_span[0], r_span[1])
                     for rel in common_rels:
@@ -330,8 +323,6 @@ def unirel_span_extractor(
         state_dict["p"] += len(pred_spo_text)
         state_dict["g"] += len(gold_spo_text)
         state_dict["c"] += len(pred_spo_text & gold_spo_text)
-        # if len(pred_spo_text & gold_spo_text) != len(gold_spo_text):
-        #     print("problem")
 
         extract_data.append(
             {
@@ -340,7 +331,7 @@ def unirel_span_extractor(
                 "pred_spo_list": list(pred_spo_text),
             }
         )
-    # print(calclulate_f1(state_dict))
+
     all_metirc_results = calclulate_f1(state_dict, "all")
     print(f"\nall:  {state_dict} \n {calclulate_f1(state_dict, 'all')}")
     with open(path, "w") as wp:

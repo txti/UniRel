@@ -15,7 +15,7 @@ python ./unirel/train.py \
     --save_steps 2000 \
     --evaluation_strategy steps \
     --warmup_ratio 0.1 \
-    --model_dir ./bert-base-cased/ \
+    --model_dir bert-base-cased \
     --output_dir ./output/webnlg \
     --overwrite_output_dir \
     --dataset_dir ./data \

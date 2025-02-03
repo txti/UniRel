@@ -148,7 +148,7 @@ if __name__ == "__main__":
         and not training_args.overwrite_output_dir
     ):
         raise ValueError(
-            f"Output directory ({training_args.output_dir}) already exists and not empty."
+            f"Directory ({training_args.output_dir}) exists and not empty."
             "Use --overwrite_output_dir to overcome."
         )
 
@@ -285,7 +285,6 @@ if __name__ == "__main__":
         train_result = trainer.train()
         trainer.save_model(output_dir=f"{trainer.args.output_dir}/checkpoint-final/")
         output_train_file = os.path.join(training_args.output_dir, "train_results.txt")
-        # trainer.evaluate()
         if trainer.is_world_process_zero():
             with open(output_train_file, "w") as writer:
                 logger.info("***** Train Results *****")

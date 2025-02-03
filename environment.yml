@@ -12,5 +12,8 @@ dependencies:
   - widgetsnbextension
   - pip:
     - wandb
-    - torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+    # Intel XPU
+    - torch==2.6.0+xpu --index-url https://download.pytorch.org/whl/xpu
+    # NVidia CUDA
+    # - torch==2.6.0 --index-url https://download.pytorch.org/whl/cu121
     - -r requirements.txt
