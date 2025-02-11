@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy as np
 import torch
@@ -9,9 +10,6 @@ from .process import rel2text
 from .process.data_extractor import *
 from .process.data_metric import *
 
-# import .rel2text
-
-
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class UniRel:
@@ -19,19 +17,20 @@ class UniRel:
         self.model = UniRelModel.from_pretrained(model_path)
         added_token = [f"[unused{i}]" for i in range(1, 17)]
         self.tokenizer = BertTokenizerFast.from_pretrained(
-            "bert-base-cased", additional_special_tokens=added_token, do_basic_tokenize=False)
-        self.max_length = max_length
+            "bert-base-cased",
+            additional_special_tokens=added_token,
+            do_basic_tokenize=False)
         self.max_length = max_length
         self._get_pred_str(dataset_name)
 
 
     def _get_pred_str(self, dataset_name):
         self.pred2text = None
-        if dataset_name == "nyt":
+        if dataset_name.startswith("nyt"):
             self.pred2text=rel2text.nyt_rel2text
-        elif dataset_name == "nyt_star":
-            self.pred2text=rel2text.nyt_rel2text
-        elif dataset_name == "webnlg":
+        elif dataset_name.startswith("tacred"):
+            self.pred2text=rel2text.tacred_rel2text
+        elif dataset_name.startswith("webnlg"):
             self.pred2text=rel2text.webnlg_rel2text
             cnt = 1
             exist_value=[]
@@ -49,27 +48,9 @@ class UniRel:
                     print("exist", k, "  ", v)
                 else:
                     exist_value.append(v)
-        elif dataset_name == "webnlg_star":
-            self.pred2text = rel2text.webnlg_rel2text
-            cnt = 1
-            exist_value=[]
-            for k in self.pred2text:
-                v = self.pred2text[k]
-                if isinstance(v, int):
-                    self.pred2text[k] = f"[unused{cnt}]"
-                    cnt += 1
-                    continue
-                ids = self.tokenizer(v)
-                if len(ids["input_ids"]) != 3:
-                    print(k, "   ", v)
-                if v in exist_value:
-                    print("exist", k, "  ", v)
-                else:
-                    exist_value.append(v)
-            # self.pred2text = {key: "[unused"+str(i+1)+"]" for i, key in enumerate(self.label2id.keys())}
         else:
             print("dataset name error")
-            exit(0)
+            sys.exit(0)
         self.pred_str = ""
         self.max_label_len = 1
         self.pred2idx = {}
@@ -92,7 +73,8 @@ class UniRel:
         batched_input_ids = []
         batched_attention_mask = []
         batched_token_type_ids = []
-        for b_input_ids, b_attention_mask, b_token_type_ids in zip(inputs["input_ids"], inputs["attention_mask"], inputs["token_type_ids"]):
+        for b_input_ids, b_attention_mask, b_token_type_ids in zip(
+                inputs["input_ids"], inputs["attention_mask"], inputs["token_type_ids"]):
             input_ids = b_input_ids + self.pred_inputs["input_ids"]
             sep_idx = b_input_ids.index(self.tokenizer.sep_token_id)
             input_ids[sep_idx] = self.tokenizer.pad_token_id

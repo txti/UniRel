@@ -1,6 +1,7 @@
 export PYTHONPATH=.
 export CUDA_VISIBLE_DEVICES="0"
 export WANDB_MODE="offline"
+export INTEL_EXTENSION_FOR_PYTORCH_XPU_DISABLED=1
 
 python3 ./unirel/train.py \
     --task_name UniRel \

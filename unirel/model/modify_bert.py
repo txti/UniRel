@@ -1,4 +1,4 @@
-"""PyTorch BERT model. """
+"""PyTorch BERT model."""
 
 # Code from Transformers Version 4.12.5 has been modified for outputing
 # un-normalized attention score in each Transformer layer.
@@ -16,10 +16,8 @@ from transformers.models.bert.modeling_bert import (
     BaseModelOutputWithPoolingAndCrossAttentions,
     BertAttention,
     BertEncoder,
-    BertIntermediate,
     BertLayer,
     BertModel,
-    BertOutput,
     BertSelfAttention,
     BertSelfOutput,
 )
@@ -30,14 +28,17 @@ logger = logging.get_logger(__name__)
 
 @dataclass
 class UniRelBertOutputWithPoolingAndCrossAttentions(
-        BaseModelOutputWithPoolingAndCrossAttentions):
-    """Add attention score member to class in modeling_bert """
+    BaseModelOutputWithPoolingAndCrossAttentions
+):
+    """Add attention score member to class in modeling_bert"""
+
     attentions_scores: Optional[Tuple[torch.FloatTensor]] = None
 
 
 @dataclass
 class UniRelBertOutputWithPastAndCrossAttentions(
-        BaseModelOutputWithPastAndCrossAttentions):
+    BaseModelOutputWithPastAndCrossAttentions
+):
     attentions_scores: Optional[Tuple[torch.FloatTensor]] = None
 
 
@@ -93,21 +94,42 @@ class UniRelBertSelfAttention(BertSelfAttention):
         # Take the dot product between "query" and "key" to get the raw attention scores.
         attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
 
-        if self.position_embedding_type == "relative_key" or self.position_embedding_type == "relative_key_query":
+        if (
+            self.position_embedding_type == "relative_key"
+            or self.position_embedding_type == "relative_key_query"
+        ):
             seq_length = hidden_states.size()[1]
-            position_ids_l = torch.arange(seq_length, dtype=torch.long, device=hidden_states.device).view(-1, 1)
-            position_ids_r = torch.arange(seq_length, dtype=torch.long, device=hidden_states.device).view(1, -1)
+            position_ids_l = torch.arange(
+                seq_length, dtype=torch.long, device=hidden_states.device
+            ).view(-1, 1)
+            position_ids_r = torch.arange(
+                seq_length, dtype=torch.long, device=hidden_states.device
+            ).view(1, -1)
             distance = position_ids_l - position_ids_r
-            positional_embedding = self.distance_embedding(distance + self.max_position_embeddings - 1)
-            positional_embedding = positional_embedding.to(dtype=query_layer.dtype)  # fp16 compatibility
+            positional_embedding = self.distance_embedding(
+                distance + self.max_position_embeddings - 1
+            )
+            positional_embedding = positional_embedding.to(
+                dtype=query_layer.dtype
+            )  # fp16 compatibility
 
             if self.position_embedding_type == "relative_key":
-                relative_position_scores = torch.einsum("bhld,lrd->bhlr", query_layer, positional_embedding)
+                relative_position_scores = torch.einsum(
+                    "bhld,lrd->bhlr", query_layer, positional_embedding
+                )
                 attention_scores = attention_scores + relative_position_scores
             elif self.position_embedding_type == "relative_key_query":
-                relative_position_scores_query = torch.einsum("bhld,lrd->bhlr", query_layer, positional_embedding)
-                relative_position_scores_key = torch.einsum("bhrd,lrd->bhlr", key_layer, positional_embedding)
-                attention_scores = attention_scores + relative_position_scores_query + relative_position_scores_key
+                relative_position_scores_query = torch.einsum(
+                    "bhld,lrd->bhlr", query_layer, positional_embedding
+                )
+                relative_position_scores_key = torch.einsum(
+                    "bhrd,lrd->bhlr", key_layer, positional_embedding
+                )
+                attention_scores = (
+                    attention_scores
+                    + relative_position_scores_query
+                    + relative_position_scores_key
+                )
 
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
         if attention_mask is not None:
@@ -161,7 +183,7 @@ class UniRelBertAttention(BertAttention):
         encoder_attention_mask=None,
         past_key_value=None,
         output_attentions=False,
-        output_attentions_scores=False
+        output_attentions_scores=False,
     ):
         self_outputs = self.self(
             hidden_states,
@@ -171,27 +193,21 @@ class UniRelBertAttention(BertAttention):
             encoder_attention_mask,
             past_key_value,
             output_attentions,
-            output_attentions_scores
+            output_attentions_scores,
         )
         attention_output = self.output(self_outputs[0], hidden_states)
-        outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
+        # add attentions if we output them
+        outputs = (attention_output,) + self_outputs[1:]
         return outputs
 
 
 class UniRelBertLayer(BertLayer):
     def __init__(self, config):
         super().__init__(config)
-        self.chunk_size_feed_forward = config.chunk_size_feed_forward
-        self.seq_len_dim = 1
+        # Replace with custom attention class
         self.attention = UniRelBertAttention(config)
-        self.is_decoder = config.is_decoder
-        self.add_cross_attention = config.add_cross_attention
         if self.add_cross_attention:
-            if not self.is_decoder:
-                raise ValueError(f"{self} should be used as a decoder model if cross attention is added")
             self.crossattention = UniRelBertAttention(config)
-        self.intermediate = BertIntermediate(config)
-        self.output = BertOutput(config)
 
     def forward(
         self,
@@ -202,10 +218,12 @@ class UniRelBertLayer(BertLayer):
         encoder_attention_mask=None,
         past_key_value=None,
         output_attentions=False,
-        output_attentions_scores=False
+        output_attentions_scores=False,
     ):
         # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
-        self_attn_past_key_value = past_key_value[:2] if past_key_value is not None else None
+        self_attn_past_key_value = (
+            past_key_value[:2] if past_key_value is not None else None
+        )
         self_attention_outputs = self.attention(
             hidden_states,
             attention_mask,
@@ -221,7 +239,8 @@ class UniRelBertLayer(BertLayer):
             outputs = self_attention_outputs[1:-1]
             present_key_value = self_attention_outputs[-1]
         else:
-            outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
+            # add self attentions if we output attention weights
+            outputs = self_attention_outputs[1:]
 
         cross_attn_present_key_value = None
         if self.is_decoder and encoder_hidden_states is not None:
@@ -231,7 +250,9 @@ class UniRelBertLayer(BertLayer):
                 )
 
             # cross_attn cached key/values tuple is at positions 3,4 of past_key_value tuple
-            cross_attn_past_key_value = past_key_value[-2:] if past_key_value is not None else None
+            cross_attn_past_key_value = (
+                past_key_value[-2:] if past_key_value is not None else None
+            )
             cross_attention_outputs = self.crossattention(
                 attention_output,
                 attention_mask,
@@ -242,14 +263,20 @@ class UniRelBertLayer(BertLayer):
                 output_attentions,
             )
             attention_output = cross_attention_outputs[0]
-            outputs = outputs + cross_attention_outputs[1:-1]  # add cross attentions if we output attention weights
+            # add cross attentions if we output attention weights
+            outputs = (
+                outputs + cross_attention_outputs[1:-1]
+            )
 
             # add cross-attn cache to positions 3,4 of present_key_value tuple
             cross_attn_present_key_value = cross_attention_outputs[-1]
             present_key_value = present_key_value + cross_attn_present_key_value
 
         layer_output = apply_chunking_to_forward(
-            self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output
+            self.feed_forward_chunk,
+            self.chunk_size_feed_forward,
+            self.seq_len_dim,
+            attention_output,
         )
         outputs = (layer_output,) + outputs
 
@@ -264,12 +291,14 @@ class UniRelBertLayer(BertLayer):
         layer_output = self.output(intermediate_output, attention_output)
         return layer_output
 
+
 class UniRelBertEncoder(BertEncoder):
     def __init__(self, config):
         super().__init__(config)
         self.config = config
         self.layer = nn.ModuleList(
-            [UniRelBertLayer(config) for _ in range(config.num_hidden_layers)])
+            [UniRelBertLayer(config) for _ in range(config.num_hidden_layers)]
+        )
         self.gradient_checkpointing = False
 
     def forward(
@@ -288,7 +317,9 @@ class UniRelBertEncoder(BertEncoder):
     ):
         all_hidden_states = () if output_hidden_states else None
         all_self_attentions = () if output_attentions else None
-        all_cross_attentions = () if output_attentions and self.config.add_cross_attention else None
+        all_cross_attentions = (
+            () if output_attentions and self.config.add_cross_attention else None
+        )
         all_self_attentions_scores = () if output_attentions_scores else None
 
         next_decoder_cache = () if use_cache else None
@@ -300,7 +331,6 @@ class UniRelBertEncoder(BertEncoder):
             past_key_value = past_key_values[i] if past_key_values is not None else None
 
             if self.gradient_checkpointing and self.training:
-
                 if use_cache:
                     logger.warning(
                         "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`..."
@@ -338,11 +368,15 @@ class UniRelBertEncoder(BertEncoder):
                 next_decoder_cache += (layer_outputs[-1],)
             if output_attentions and output_attentions_scores:
                 all_self_attentions = all_self_attentions + (layer_outputs[1],)
-                all_self_attentions_scores = all_self_attentions_scores + (layer_outputs[2],)
+                all_self_attentions_scores = all_self_attentions_scores + (
+                    layer_outputs[2],
+                )
                 if self.config.add_cross_attention:
                     all_cross_attentions = all_cross_attentions + (layer_outputs[2],)
             elif output_attentions_scores and not output_attentions:
-                all_self_attentions_scores = all_self_attentions_scores + (layer_outputs[1],)
+                all_self_attentions_scores = all_self_attentions_scores + (
+                    layer_outputs[1],
+                )
                 if self.config.add_cross_attention:
                     all_cross_attentions = all_cross_attentions + (layer_outputs[2],)
             elif output_attentions and not output_attentions_scores:
@@ -399,32 +433,24 @@ class UniRelBertModel(BertModel):
         return_dict=None,
         output_attentions_scores=None,
     ):
-        r"""
-        encoder_hidden_states  (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, hidden_size)`, `optional`):
-            Sequence of hidden-states at the output of the last layer of the encoder. Used in the cross-attention if
-            the model is configured as a decoder.
-        encoder_attention_mask (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
-            Mask to avoid performing attention on the padding token indices of the encoder input. This mask is used in
-            the cross-attention if the model is configured as a decoder. Mask values selected in ``[0, 1]``:
-
-            - 1 for tokens that are **not masked**,
-            - 0 for tokens that are **masked**.
-        past_key_values (:obj:`tuple(tuple(torch.FloatTensor))` of length :obj:`config.n_layers` with each tuple having 4 tensors of shape :obj:`(batch_size, num_heads, sequence_length - 1, embed_size_per_head)`):
-            Contains precomputed key and value hidden states of the attention blocks. Can be used to speed up decoding.
-
-            If :obj:`past_key_values` are used, the user can optionally input only the last :obj:`decoder_input_ids`
-            (those that don't have their past key value states given to this model) of shape :obj:`(batch_size, 1)`
-            instead of all :obj:`decoder_input_ids` of shape :obj:`(batch_size, sequence_length)`.
-        use_cache (:obj:`bool`, `optional`):
-            If set to :obj:`True`, :obj:`past_key_values` key value states are returned and can be used to speed up
-            decoding (see :obj:`past_key_values`).
-        """
-        output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
-        output_attentions_scores = output_attentions_scores if output_attentions_scores is not None else self.config.output_attentions
-        output_hidden_states = (
-            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
+        output_attentions = (
+            output_attentions
+            if output_attentions is not None
+            else self.config.output_attentions
         )
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        output_attentions_scores = (
+            output_attentions_scores
+            if output_attentions_scores is not None
+            else self.config.output_attentions
+        )
+        output_hidden_states = (
+            output_hidden_states
+            if output_hidden_states is not None
+            else self.config.output_hidden_states
+        )
+        return_dict = (
+            return_dict if return_dict is not None else self.config.use_return_dict
+        )
 
         if self.config.is_decoder:
             use_cache = use_cache if use_cache is not None else self.config.use_cache
@@ -432,7 +458,9 @@ class UniRelBertModel(BertModel):
             use_cache = False
 
         if input_ids is not None and inputs_embeds is not None:
-            raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
+            raise ValueError(
+                "You cannot specify both input_ids and inputs_embeds at the same time"
+            )
         elif input_ids is not None:
             input_shape = input_ids.size()
         elif inputs_embeds is not None:
@@ -444,32 +472,45 @@ class UniRelBertModel(BertModel):
         device = input_ids.device if input_ids is not None else inputs_embeds.device
 
         # past_key_values_length
-        past_key_values_length = past_key_values[0][0].shape[2] if past_key_values is not None else 0
+        past_key_values_length = (
+            past_key_values[0][0].shape[2] if past_key_values is not None else 0
+        )
 
         if attention_mask is None:
-            attention_mask = torch.ones(((batch_size, seq_length + past_key_values_length)), device=device)
+            attention_mask = torch.ones(
+                ((batch_size, seq_length + past_key_values_length)), device=device
+            )
 
         if token_type_ids is None:
             if hasattr(self.embeddings, "token_type_ids"):
                 buffered_token_type_ids = self.embeddings.token_type_ids[:, :seq_length]
-                buffered_token_type_ids_expanded = buffered_token_type_ids.expand(batch_size, seq_length)
+                buffered_token_type_ids_expanded = buffered_token_type_ids.expand(
+                    batch_size, seq_length
+                )
                 token_type_ids = buffered_token_type_ids_expanded
             else:
-                token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=device)
+                token_type_ids = torch.zeros(
+                    input_shape, dtype=torch.long, device=device
+                )
 
         # We can provide a self-attention mask of dimensions [batch_size, from_seq_length, to_seq_length]
         # ourselves in which case we just need to make it broadcastable to all heads.
         extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(
-            attention_mask, input_shape, device)
+            attention_mask, input_shape, device
+        )
 
         # If a 2D or 3D attention mask is provided for the cross-attention
         # we need to make broadcastable to [batch_size, num_heads, seq_length, seq_length]
         if self.config.is_decoder and encoder_hidden_states is not None:
-            encoder_batch_size, encoder_sequence_length, _ = encoder_hidden_states.size()
+            encoder_batch_size, encoder_sequence_length, _ = (
+                encoder_hidden_states.size()
+            )
             encoder_hidden_shape = (encoder_batch_size, encoder_sequence_length)
             if encoder_attention_mask is None:
                 encoder_attention_mask = torch.ones(encoder_hidden_shape, device=device)
-            encoder_extended_attention_mask = self.invert_attention_mask(encoder_attention_mask)
+            encoder_extended_attention_mask = self.invert_attention_mask(
+                encoder_attention_mask
+            )
         else:
             encoder_extended_attention_mask = None
 
@@ -501,7 +542,9 @@ class UniRelBertModel(BertModel):
             return_dict=return_dict,
         )
         sequence_output = encoder_outputs[0]
-        pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
+        pooled_output = (
+            self.pooler(sequence_output) if self.pooler is not None else None
+        )
 
         if not return_dict:
             return (sequence_output, pooled_output) + encoder_outputs[1:]

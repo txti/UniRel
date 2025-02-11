@@ -40,7 +40,6 @@ class UniRelDataProcessor(object):
         self,
         root,
         tokenizer,
-        is_lower=False,
         dataset_name="nyt",
     ):
         self.task_data_dir = os.path.join(root, dataset_name)
@@ -60,38 +59,22 @@ class UniRelDataProcessor(object):
         self.max_label_len = 0
 
         self._get_labels()
-        if dataset_name == "nyt":
+        if dataset_name.startswith("nyt"):
             self.pred2text = rel2text.nyt_rel2text
-            # self.pred2text = {key: "[unused"+str(i+1)+"]" for i, key in enumerate(self.label2id.keys())}
-        elif dataset_name == "nyt_star":
-            self.pred2text = rel2text.nyt_rel2text
-            # self.pred2text = {key: "[unused"+str(i+1)+"]" for i, key in enumerate(self.label2id.keys())}
-        elif dataset_name == "webnlg":
-            # self.pred2text = {key: "[unused"+str(i+1)+"]" for i, key in enumerate(self.label2id.keys())}
-            self.pred2text = rel2text.webnlg_rel2text
-            cnt = 1
-            exist_value = []
-            # Some hard to convert relation directly use [unused]
-            for k in self.pred2text:
-                v = self.pred2text[k]
-                if isinstance(v, int):
-                    self.pred2text[k] = f"[unused{cnt}]"
-                    cnt += 1
-                    continue
-                ids = self.tokenizer(v)
-                if len(ids["input_ids"]) != 3:
-                    print(k, "   ", v)
-                if v in exist_value:
-                    print("exist", k, "  ", v)
-                else:
-                    exist_value.append(v)
-        elif dataset_name == "webnlg_star":
-            self.pred2text = {}
-            for pred in self.label2id.keys():
-                try:
-                    self.pred2text[pred] = rel2text.webnlg_rel2text[pred]
-                except KeyError:
-                    print(pred)
+        elif dataset_name == "tacred":
+            self.pred2text = rel2text.tacred_rel2text
+        elif dataset_name.startswith("webnlg"):
+
+            if dataset_name == "webnlg_star":
+                self.pred2text = {}
+                for pred in self.label2id.keys():
+                    try:
+                        self.pred2text[pred] = rel2text.webnlg_rel2text[pred]
+                    except KeyError:
+                        print(pred)
+            else:
+                self.pred2text = rel2text.webnlg_rel2text
+
             cnt = 1
             exist_value = []
             for k in self.pred2text:
@@ -107,7 +90,7 @@ class UniRelDataProcessor(object):
                     print("exist", k, "  ", v)
                 else:
                     exist_value.append(v)
-            # self.pred2text = {key: "[unused"+str(i+1)+"]" for i, key in enumerate(self.label2id.keys())}
+
         self.num_rels = len(self.pred2text.keys())
         self.max_label_len = 1
         self.pred2idx = {}
@@ -123,23 +106,23 @@ class UniRelDataProcessor(object):
 
     def get_train_sample(self, token_len=100, data_nums=-1):
         return self._pre_process(
-            self.train_path, token_len=token_len, is_predict=False, data_nums=data_nums
+            self.train_path, token_len=token_len, data_nums=data_nums
         )
 
     def get_dev_sample(self, token_len=150, data_nums=-1):
         return self._pre_process(
-            self.dev_path, token_len=token_len, is_predict=True, data_nums=data_nums
+            self.dev_path, token_len=token_len, data_nums=data_nums
         )
 
     def get_test_sample(self, token_len=150, data_nums=-1):
         samples = self._pre_process(
-            self.test_path, token_len=token_len, is_predict=True, data_nums=data_nums
+            self.test_path, token_len=token_len, data_nums=data_nums
         )
         return samples
 
     def get_specific_test_sample(self, data_path, token_len=150, data_nums=-1):
         return self._pre_process(
-            data_path, token_len=token_len, is_predict=True, data_nums=data_nums
+            data_path, token_len=token_len, data_nums=data_nums
         )
 
     def _get_labels(self):
@@ -161,7 +144,7 @@ class UniRelDataProcessor(object):
         self.id2label = label_map
         self.label2id = {val: key for key, val in self.id2label.items()}
 
-    def _pre_process(self, path, token_len, is_predict, data_nums):
+    def _pre_process(self, path, token_len, data_nums):
         outputs = {
             "text": [],
             "spo_list": [],
