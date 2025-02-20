@@ -132,14 +132,15 @@ class RunArguments:
     )
 
 
-if __name__ == "__main__":
+def train(args=None):
+
     parser = HfArgumentParser((RunArguments, TrainingArguments))
-    if len(sys.argv[1]) == 2 and sys.argv[1].endswith(".json"):
+    if len(sys.argv) > 1 and len(sys.argv[1]) == 2 and sys.argv[1].endswith(".json"):
         run_args, training_args = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
     else:
-        run_args, training_args = parser.parse_args_into_dataclasses()
+        run_args, training_args = parser.parse_args_into_dataclasses(args)
 
     if (
         os.path.exists(training_args.output_dir)
@@ -183,14 +184,12 @@ if __name__ == "__main__":
     # Log on each process the small summary:
     logger.warning(
         f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
-        + f"distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
+        + f" distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
 
     # Initialize Dataset-sensitive class/function
-    dataset_name = run_args.dataset_name
     DataProcessorType = DataProcessorDict[run_args.test_data_type]
     metric_type = DataMetricDict[run_args.test_data_type]
-    predict_metric_type = PredictDataMetricDict[run_args.test_data_type]
     DatasetType = DatasetDict[run_args.test_data_type]
     ExtractType = DataExtractDict[run_args.test_data_type]
     ModelType = ModelDict[run_args.test_data_type]
@@ -292,7 +291,6 @@ if __name__ == "__main__":
                     logger.info(f"  {key} = {value}")
                     print(f"{key} = {value}", file=writer)
 
-    results = dict()
     if run_args.do_test_all_checkpoints:
         if run_args.checkpoint_dir is None:
             checkpoints = list(
@@ -318,10 +316,6 @@ if __name__ == "__main__":
             )
             if not os.path.isdir(output_dir):
                 os.makedirs(output_dir)
-            global_step = checkpoint.split("-")[1]
-            prefix = (
-                checkpoint.split("/")[-1] if checkpoint.find("checkpoint") != -1 else ""
-            )
             model = PredictModelType.from_pretrained(checkpoint, config=config)
             trainer = Trainer(
                 model=model,
@@ -351,3 +345,7 @@ if __name__ == "__main__":
             training_args.output_dir, best_checkpoint.split("/")[-1]
         )
         ExtractType(tokenizer, test_dataset, test_prediction, output_dir)
+
+
+if __name__ == "__main__":
+    train()
