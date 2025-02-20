@@ -16,10 +16,8 @@ from transformers.models.bert.modeling_bert import (
     BaseModelOutputWithPoolingAndCrossAttentions,
     BertAttention,
     BertEncoder,
-    BertIntermediate,
     BertLayer,
     BertModel,
-    BertOutput,
     BertSelfAttention,
     BertSelfOutput,
 )
@@ -206,17 +204,10 @@ class UniRelBertAttention(BertAttention):
 class UniRelBertLayer(BertLayer):
     def __init__(self, config):
         super().__init__(config)
-        self.chunk_size_feed_forward = config.chunk_size_feed_forward
-        self.seq_len_dim = 1
+        # Replace with custom attention class
         self.attention = UniRelBertAttention(config)
-        self.is_decoder = config.is_decoder
-        self.add_cross_attention = config.add_cross_attention
         if self.add_cross_attention:
-            if not self.is_decoder:
-                raise ValueError(f"{self} should be used as a decoder model if cross attention is added")
             self.crossattention = UniRelBertAttention(config)
-        self.intermediate = BertIntermediate(config)
-        self.output = BertOutput(config)
 
     def forward(
         self,
