@@ -11,6 +11,7 @@ dependencies:
   - pandas
   - widgetsnbextension
   - pip:
+    - datasets
     - wandb
     # Intel XPU
     - torch==2.6.0+xpu --index-url https://download.pytorch.org/whl/xpu

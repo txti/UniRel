@@ -2,15 +2,6 @@ from sklearn.metrics import precision_recall_fscore_support
 from transformers import EvalPrediction
 
 
-def calclulate_f1(statics_dict):
-    prec, recall, f1 = 0, 0, 0
-    if statics_dict["c"] != 0:
-        prec = float(statics_dict["c"] / statics_dict["p"])
-        recall = float(statics_dict["c"] / statics_dict["g"])
-        f1 = float(prec * recall) / float(prec + recall) * 2
-    return {"prec": prec, "recall": recall, "f1": f1}
-
-
 def unirel_metric(p: EvalPrediction):
     tail_labels = p.label_ids
     tail_preds = p.predictions

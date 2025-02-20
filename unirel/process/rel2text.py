@@ -27,6 +27,50 @@ nyt_rel2text = {
                 '/sports/sports_team_location/teams': 'teams'
             }
 
+tacred_rel2text = {
+    "no_relation": "null",
+    "org:founded_by": "founder",
+    "per:identity": "identity",
+    "org:alternate_names": "alias",
+    "per:children": "child",
+    "per:origin": "origin",
+    "per:countries_of_residence": "domicile",
+    "per:employee_of": "employee",
+    "per:title": "title",
+    "org:city_of_branch": "city",
+    "per:religion": "religion",
+    "per:age": "age",
+    "per:date_of_death": "died",
+    "org:website": "website",
+    "per:stateorprovinces_of_residence": "state",
+    "org:top_members/employees": "leader",
+    "org:number_of_employees/members": "headcount",
+    "org:members": "member",
+    "org:country_of_branch": "region",
+    "per:spouse": "spouse",
+    "org:stateorprovince_of_branch": "territory",
+    "org:political/religious_affiliation": "affiliation",
+    "org:member_of": "affiliate",
+    "per:siblings": "sibling",
+    "per:stateorprovince_of_birth": "birthplace",
+    "org:dissolved": "dissolved",
+    "per:other_family": "relative",
+    "org:shareholders": "shareholder",
+    "per:parents": "parent",
+    "per:charges": "charges",
+    "per:schools_attended": "school",
+    "per:cause_of_death": "cause",
+    "per:city_of_death": "deathplace",
+    "per:stateorprovince_of_death": "province",
+    "org:founded": "founded",
+    "per:country_of_death": "country",
+    "per:country_of_birth": "homeland",
+    "per:date_of_birth": "birthday",
+    "per:cities_of_residence": "residence",
+    "per:city_of_birth": "hometown"
+}
+
+
 nyt_rel2text_ablation = {
                 # '/business/company/advisors': 'adviser',
                 '/business/company/advisors': 'counselor',
