@@ -8,3 +8,5 @@ output
 wandb
 notebooks
 assets/models
+tb_logs
+.pytest_cache

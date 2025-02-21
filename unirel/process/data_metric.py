@@ -2,23 +2,6 @@ from sklearn.metrics import precision_recall_fscore_support
 from transformers import EvalPrediction
 
 
-def unirel_metric(p: EvalPrediction):
-    tail_labels = p.label_ids
-    tail_preds = p.predictions
-    tail_acc, tail_recall, tail_f1, _ = precision_recall_fscore_support(
-        y_pred=tail_preds.reshape(-1),
-        y_true=tail_labels.reshape(-1),
-        labels=[1],
-        average="micro",
-    )
-
-    return {
-        "acc": tail_acc,
-        "recall": tail_recall,
-        "f1": tail_f1,
-    }
-
-
 def unirel_span_metric(p: EvalPrediction):
     head_labels, tail_labels, span_labels = p.label_ids
     head_preds, tail_preds, span_preds = p.predictions

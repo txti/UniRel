@@ -17,35 +17,14 @@ from transformers import (
 from transformers.hf_argparser import HfArgumentParser
 
 from unirel.model.model_transformers import UniRelModel
-from unirel.process.data_extractor import unirel_extractor, unirel_span_extractor
-from unirel.process.data_metric import unirel_metric, unirel_span_metric
+from unirel.process.data_extractor import unirel_span_extractor
+from unirel.process.data_metric import unirel_span_metric
 from unirel.process.data_processor import UniRelDataProcessor
-from unirel.process.dataset import UniRelDataset, UniRelSpanDataset
+from unirel.process.dataset import UniRelSpanDataset
 
 # Silence Huggingface
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-DataProcessorDict = {
-    "nyt_all_sa": UniRelDataProcessor,
-    "unirel_span": UniRelDataProcessor,
-}
-
-DatasetDict = {"nyt_all_sa": UniRelDataset, "unirel_span": UniRelSpanDataset}
-
-ModelDict = {"nyt_all_sa": UniRelModel, "unirel_span": UniRelModel}
-
-PredictModelDict = {"nyt_all_sa": UniRelModel, "unirel_span": UniRelModel}
-
-DataMetricDict = {"nyt_all_sa": unirel_metric, "unirel_span": unirel_span_metric}
-
-PredictDataMetricDict = {"nyt_all_sa": unirel_metric, "unirel_span": unirel_span_metric}
-
-DataExtractDict = {"nyt_all_sa": unirel_extractor, "unirel_span": unirel_span_extractor}
-
-LableNamesDict = {
-    "nyt_all_sa": ["tail_label"],
-    "unirel_span": ["head_label", "tail_label", "span_label"],
-}
 
 InputFeature = collections.namedtuple(
     "InputFeature", ["input_ids", "attention_mask", "token_type_ids", "label"]
@@ -183,21 +162,18 @@ def train(args=None):
 
     # Log on each process the small summary:
     logger.warning(
-        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
-        + f" distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
+        f"Process rank: {training_args.local_rank} "
+        f"device: {training_args.device}, "
+        f"n_gpu: {training_args.n_gpu}, "
+        f"distributed training: {bool(training_args.local_rank != -1)}, "
+        f"16-bits training: {training_args.fp16}"
     )
 
-    # Initialize Dataset-sensitive class/function
-    DataProcessorType = DataProcessorDict[run_args.test_data_type]
-    metric_type = DataMetricDict[run_args.test_data_type]
-    DatasetType = DatasetDict[run_args.test_data_type]
-    ExtractType = DataExtractDict[run_args.test_data_type]
-    ModelType = ModelDict[run_args.test_data_type]
-    PredictModelType = PredictModelDict[run_args.test_data_type]
-    training_args.label_names = LableNamesDict[run_args.test_data_type]
+    # Initialize labels
+    training_args.label_names = ["head_label", "tail_label", "span_label"]
 
     # Load data
-    data_processor = DataProcessorType(
+    data_processor = UniRelDataProcessor(
         root=run_args.dataset_dir,
         tokenizer=tokenizer,
         dataset_name=run_args.dataset_name,
@@ -222,7 +198,7 @@ def train(args=None):
         )
 
     # Train with fixed sentence length of 100
-    train_dataset = DatasetType(
+    train_dataset = UniRelSpanDataset(
         train_samples,
         data_processor,
         tokenizer,
@@ -235,7 +211,7 @@ def train(args=None):
         eval_type="train",
     )
     # 150 is big enough for both NYT and WebNLG testset
-    dev_dataset = DatasetType(
+    dev_dataset = UniRelSpanDataset(
         dev_samples,
         data_processor,
         tokenizer,
@@ -247,7 +223,7 @@ def train(args=None):
         predict=True,
         eval_type="eval",
     )
-    test_dataset = DatasetType(
+    test_dataset = UniRelSpanDataset(
         test_samples,
         data_processor,
         tokenizer,
@@ -270,7 +246,7 @@ def train(args=None):
     config.is_separate_ablation = run_args.is_separate_ablation
     config.test_data_type = run_args.test_data_type
 
-    model = ModelType(config=config, model_dir=run_args.model_dir)
+    model = UniRelModel(config=config, model_dir=run_args.model_dir)
     model.resize_token_embeddings(len(tokenizer))
 
     if training_args.do_train:
@@ -279,7 +255,7 @@ def train(args=None):
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=dev_dataset,
-            compute_metrics=metric_type,
+            compute_metrics=unirel_span_metric,
         )
         train_result = trainer.train()
         trainer.save_model(output_dir=f"{trainer.args.output_dir}/checkpoint-final/")
@@ -316,7 +292,7 @@ def train(args=None):
             )
             if not os.path.isdir(output_dir):
                 os.makedirs(output_dir)
-            model = PredictModelType.from_pretrained(checkpoint, config=config)
+            model = UniRelModel.from_pretrained(checkpoint, config=config)
             trainer = Trainer(
                 model=model,
                 args=training_args,
@@ -325,14 +301,15 @@ def train(args=None):
             )
 
             dev_predictions = trainer.predict(dev_dataset)
-            p, r, f1 = ExtractType(tokenizer, dev_dataset, dev_predictions, output_dir)
+            p, r, f1 = unirel_span_extractor(
+                tokenizer, dev_dataset, dev_predictions, output_dir)
             if f1 > best_f1:
                 best_f1 = f1
                 best_checkpoint = checkpoint
 
         # Do test
         logger.info(f"Best checkpoint at {best_checkpoint} with f1 = {best_f1}")
-        model = PredictModelType.from_pretrained(best_checkpoint, config=config)
+        model = UniRelModel.from_pretrained(best_checkpoint, config=config)
         trainer = Trainer(
             model=model,
             args=training_args,
@@ -344,7 +321,7 @@ def train(args=None):
         output_dir = os.path.join(
             training_args.output_dir, best_checkpoint.split("/")[-1]
         )
-        ExtractType(tokenizer, test_dataset, test_prediction, output_dir)
+        unirel_span_extractor(tokenizer, test_dataset, test_prediction, output_dir)
 
 
 if __name__ == "__main__":

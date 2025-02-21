@@ -98,7 +98,7 @@ class UniRelSpanDataset(Dataset):
         predict=False,
         eval_type="eval",
     ):
-        super(UniRelSpanDataset, self).__init__()
+        super().__init__()
 
         self.max_length = max_length
         self.data_processor = data_processor

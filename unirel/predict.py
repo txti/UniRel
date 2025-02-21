@@ -28,8 +28,8 @@ class UniRel:
         self.pred2text = None
         if dataset_name.startswith("nyt"):
             self.pred2text=rel2text.nyt_rel2text
-        elif dataset_name.startswith("tacred"):
-            self.pred2text=rel2text.tacred_rel2text
+        elif dataset_name.startswith("retacred"):
+            self.pred2text=rel2text.retacred_rel2text
         elif dataset_name.startswith("webnlg"):
             self.pred2text=rel2text.webnlg_rel2text
             cnt = 1

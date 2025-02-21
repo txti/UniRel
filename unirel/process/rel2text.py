@@ -27,7 +27,7 @@ nyt_rel2text = {
                 '/sports/sports_team_location/teams': 'teams'
             }
 
-tacred_rel2text = {
+retacred_rel2text = {
     "no_relation": "null",
     "org:founded_by": "founder",
     "per:identity": "identity",

@@ -61,8 +61,8 @@ class UniRelDataProcessor(object):
         self._get_labels()
         if dataset_name.startswith("nyt"):
             self.pred2text = rel2text.nyt_rel2text
-        elif dataset_name == "tacred":
-            self.pred2text = rel2text.tacred_rel2text
+        elif dataset_name == "retacred":
+            self.pred2text = rel2text.retacred_rel2text
         elif dataset_name.startswith("webnlg"):
 
             if dataset_name == "webnlg_star":
